@@ -1,0 +1,56 @@
+name: Anchor Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libssl-dev build-essential libudev-dev libusb-1.0-0-dev
+
+      - name: Install Solana CLI (stable)
+        run: |
+          sh -c "$(curl -sSfL https://release.solana.com/stable/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+          solana --version
+
+      - name: Install Anchor CLI
+        run: |
+          cargo install --git https://github.com/coral-xyz/anchor anchor-cli --locked
+          anchor --version
+
+      - name: Generate local keypair
+        run: |
+          mkdir -p ~/.config/solana
+          solana-keygen new -f
+
+      - name: Install Node deps (mytoken)
+        working-directory: mytoken
+        run: |
+          yarn install --frozen-lockfile || yarn install
+
+      - name: Build (anchor)
+        working-directory: mytoken
+        run: anchor build
+
+      - name: Test (anchor)
+        working-directory: mytoken
+        run: anchor test
