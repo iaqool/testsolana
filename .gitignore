@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+mytoken/node_modules/
+
+# Build artifacts
+/dist/
+dist/
+/build/
+build/
+/target/
+mytoken/target/
+
+# Anchor/Solana local files
+.anchor/
+**/*.so
+**/*.dSYM/
+**/*.log
+
+# TypeScript
+*.tsbuildinfo
+
+# OS / Editor junk
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Env
+.env
+.env.*
+
+# Rust
+**/Cargo.lock
+**/target/
+
+# Coverage
+coverage/
+
+# Yarn Berry
+.yarn/
+.pnp.*
