@@ -1,8 +1,9 @@
 /// <reference types="mocha" />
 import * as anchor from "@coral-xyz/anchor";
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, SystemProgram } from "@solana/web3.js";
 import {
   TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
   getAccount,
   getAssociatedTokenAddress,
   getMint,
@@ -63,6 +64,7 @@ if (!hasAnchorToml) {
           mint: mintKeypair.publicKey,
           authority: payer.publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
         })
         .signers([mintKeypair])
         .rpc();
@@ -90,6 +92,8 @@ if (!hasAnchorToml) {
             mint,
             authority: payer.publicKey,
             tokenProgram: TOKEN_PROGRAM_ID,
+            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
           })
           .rpc();
         console.log("▶️ createTokenAccount tx:", sig);
@@ -135,6 +139,8 @@ if (!hasAnchorToml) {
           mint,
           authority: recipient.publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
         })
         .signers([recipient])
         .rpc();
