@@ -6,11 +6,10 @@ import path from "path";
 // чтобы в этой демо-среде он просто скипался, а у себя вы могли запустить.
 
 const hasAnchorToml = fs.existsSync(path.resolve(process.cwd(), "Anchor.toml"));
-const hasAnchorEnv = !!process.env.ANCHOR_PROVIDER_URL && !!process.env.ANCHOR_WALLET;
 
-if (!hasAnchorToml || !hasAnchorEnv) {
+if (!hasAnchorToml) {
   describe("mytoken (skipped)", () => {
-    it("skips because no Anchor env/IDL here", function () {
+    it("skips because no Anchor workspace/IDL here", function () {
       this.skip();
     });
   });

@@ -13,11 +13,10 @@ import assert from "assert";
 import fs from "fs";
 import path from "path";
 const hasAnchorToml = fs.existsSync(path.resolve(process.cwd(), "Anchor.toml"));
-const hasAnchorEnv = !!process.env.ANCHOR_PROVIDER_URL && !!process.env.ANCHOR_WALLET;
 
-if (!hasAnchorToml || !hasAnchorEnv) {
+if (!hasAnchorToml) {
   describe("mytoken program (skipped in this workspace)", () => {
-    it("skips because Anchor workspace/IDL or env is not present here", function () {
+    it("skips because Anchor workspace/IDL is not present here", function () {
       this.skip();
     });
   });
