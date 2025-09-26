@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::{self, AssociatedToken};
-use anchor_spl::token::{self, Mint, MintTo, Token, Transfer};
+use anchor_spl::token::{self, Mint, MintTo, Token, Transfer, Burn};
 use anchor_lang::solana_program::{program::invoke, system_instruction};
 
 declare_id!("EYfHSdmUTkcXEt2rsUUdW16C9taGPR8sXjMsQqV4F5pZ");
@@ -89,6 +89,18 @@ pub mod mytoken {
         };
         token::transfer(CpiContext::new(cpi_program, cpi_accounts), amount)
     }
+
+    // Сжигание токенов с указанного token_account, уменьшая общий supply
+    pub fn burn_tokens(ctx: Context<BurnTokens>, amount: u64) -> Result<()> {
+        // CPI к SPL Token: Burn
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        let cpi_accounts = Burn {
+            mint: ctx.accounts.mint.to_account_info(),
+            from: ctx.accounts.token_account.to_account_info(),
+            authority: ctx.accounts.authority.to_account_info(),
+        };
+        token::burn(CpiContext::new(cpi_program, cpi_accounts), amount)
+    }
 }
 
 #[derive(Accounts)]
@@ -143,6 +155,19 @@ pub struct TransferTokens<'info> {
     #[account(mut)]
     /// CHECK: to token account
     pub to: UncheckedAccount<'info>,
+    pub authority: Signer<'info>,
+    pub token_program: Program<'info, Token>,
+}
+
+// Accounts для burn_tokens
+#[derive(Accounts)]
+pub struct BurnTokens<'info> {
+    #[account(mut)]
+    /// CHECK: mint
+    pub mint: UncheckedAccount<'info>,
+    #[account(mut)]
+    /// CHECK: token account (holder)
+    pub token_account: UncheckedAccount<'info>,
     pub authority: Signer<'info>,
     pub token_program: Program<'info, Token>,
 }

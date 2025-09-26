@@ -55,6 +55,7 @@ if (!hasAnchorToml) {
       "create_token_account",
       "mint_tokens",
       "transfer_tokens",
+      "burn_tokens",
     ].every(hasByEither);
 
     if (!hasAllRequired) {
@@ -182,6 +183,35 @@ if (!hasAnchorToml) {
 
       console.log("✅ Баланс отправителя:", senderInfo.amount.toString(), "(было:", beforeSender.toString(), ")");
       console.log("✅ Баланс получателя:", recipientInfo.amount.toString(), "(было:", beforeRcpt.toString(), ") tx:", transferSig);
+    });
+
+    it("burn_tokens()", async () => {
+      // Берём текущий баланс отправителя (после transfer должен быть 300)
+      const senderBefore = (await getAccount(provider.connection, userTokenAccount)).amount;
+      assert.equal(senderBefore.toString(), "300", "Ожидали 300 перед burn (если меняли тесты — поправьте ожидание)");
+
+      const mintInfoBefore = await getMint(provider.connection, mint);
+      const supplyBefore = mintInfoBefore.supply;
+      assert.equal(supplyBefore.toString(), "500", "Ожидали суммарный supply 500 до burn");
+
+      const burnAmount = new anchor.BN(50);
+      const sig = await program.methods
+        .burnTokens(burnAmount)
+        .accounts({
+          mint,
+          tokenAccount: userTokenAccount,
+          authority: payer.publicKey,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+
+      const senderAfter = (await getAccount(provider.connection, userTokenAccount)).amount;
+      const mintInfoAfter = await getMint(provider.connection, mint);
+      const supplyAfter = mintInfoAfter.supply;
+
+      assert.equal(senderAfter.toString(), "250");
+      assert.equal(supplyAfter.toString(), "450");
+      console.log("🔥 burn_tokens: сожжено 50. Баланс отправителя:", senderAfter.toString(), "total supply:", supplyAfter.toString(), "tx:", sig);
     });
   });
 }
