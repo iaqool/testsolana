@@ -7,6 +7,7 @@ skip-lint = false
 
 [programs.localnet]
 mytoken = "EYfHSdmUTkcXEt2rsUUdW16C9taGPR8sXjMsQqV4F5pZ"
+escrow = "Escrow1111111111111111111111111111111111111"
 
 [registry]
 url = "https://api.apr.dev"

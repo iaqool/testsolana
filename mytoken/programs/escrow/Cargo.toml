@@ -1,0 +1,16 @@
+[package]
+name = "escrow"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "escrow"
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+idl-build = []
+
+[dependencies]
+anchor-lang = { version = "0.31.1" }
+anchor-spl = { version = "0.31.1", features = ["token", "associated_token"] }
