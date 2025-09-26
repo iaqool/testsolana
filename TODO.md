@@ -1,7 +1,7 @@
 # TODO / Идеи для дальнейшего улучшения
 
 ## Escrow Program
-- [ ] Реальный program id (сгенерировать ключ и заменить заглушку `Escrow1111...` в declare_id!/Anchor.toml)
+- [x] Реальный program id (ключ сгенерирован, обновлены declare_id! и Anchor.toml)
 - [ ] Добавить nonce / счетчик в seeds для нескольких активных сделок между одинаковыми sender/receiver/mint
 - [ ] Поле `deadline` (u64 unix timestamp) + проверка при release / cancel (просроченные можно отменять только sender)
 - [ ] Частичный release: хранить `remaining` и разрешать `release_partial(amount)` пока remaining > 0

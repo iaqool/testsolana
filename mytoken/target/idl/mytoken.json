@@ -175,14 +175,40 @@
     },
     {
       "name": "burn_tokens",
-      "discriminator": [0,0,0,0,0,0,0,0],
-      "accounts": [
-        { "name": "mint", "writable": true },
-        { "name": "token_account", "writable": true },
-        { "name": "authority", "signer": true },
-        { "name": "token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" }
+      "discriminator": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
       ],
-      "args": [ { "name": "amount", "type": "u64" } ]
+      "accounts": [
+        {
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "token_account",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
     }
   ]
 }
