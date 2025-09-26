@@ -136,6 +136,50 @@ if (!hasAnchorToml) {
       }
     });
 
+    it("release without deposit should fail (new escrow)", async () => {
+      // Генерируем нового получателя чтобы сиды escrow отличались
+      const receiver2 = Keypair.generate();
+      const [escrowPdaNoDeposit] = PublicKey.findProgramAddressSync([
+        Buffer.from("escrow"),
+        sender.publicKey.toBuffer(),
+        receiver2.publicKey.toBuffer(),
+        mint.toBuffer(),
+      ], program.programId);
+
+      // Создаём новый escrow (amount 30)
+      await program.methods
+        .createEscrow(new anchor.BN(30))
+        .accounts({
+          sender: sender.publicKey,
+          receiver: receiver2.publicKey,
+          mint,
+          escrowAccount: escrowPdaNoDeposit,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([sender])
+        .rpc();
+
+      const receiver2Ata = await getAssociatedTokenAddress(mint, receiver2.publicKey);
+      // Пытаемся освободить без deposit_tokens()
+      try {
+        await program.methods
+          .releaseTokens()
+          .accounts({
+            receiver: receiver2.publicKey,
+            mint,
+            escrowAccount: escrowPdaNoDeposit,
+            receiverTokenAccount: receiver2Ata,
+            vaultTokenAccount: await getAssociatedTokenAddress(mint, escrowPdaNoDeposit, true),
+            tokenProgram: TOKEN_PROGRAM_ID,
+          })
+          .signers([receiver2])
+          .rpc();
+        assert.fail("Release succeeded without prior deposit");
+      } catch (e) {
+        console.log("✅ release without deposit correctly failed");
+      }
+    });
+
     it("release_tokens()", async () => {
       // Create receiver ATA implicitly by checking (mintTo not needed, just ensure exists)
       receiverAta = await getAssociatedTokenAddress(mint, receiver.publicKey);
