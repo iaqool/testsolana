@@ -26,10 +26,9 @@ pub mod escrow {
         let escrow = &ctx.accounts.escrow_account;
         require!(!escrow.is_completed, EscrowError::AlreadyCompleted);
         require_keys_eq!(escrow.sender, ctx.accounts.sender.key(), EscrowError::NotSender);
-        // Проверяем что в хранилище ещё ничего нет (однократный депозит)
+        // Если уже что-то лежит — запретим повторный депозит
         require!(ctx.accounts.vault_token_account.amount == 0, EscrowError::AlreadyDeposited);
 
-        // Transfer от sender к vault
         let cpi_accounts = Transfer {
             from: ctx.accounts.sender_token_account.to_account_info(),
             to: ctx.accounts.vault_token_account.to_account_info(),
@@ -37,6 +36,7 @@ pub mod escrow {
         };
         let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts);
         token::transfer(cpi_ctx, escrow.amount)?;
+        emit!(DepositedEvent { escrow: ctx.accounts.escrow_account.key(), amount: escrow.amount });
         Ok(())
     }
 
@@ -61,6 +61,7 @@ pub mod escrow {
         );
         token::transfer(cpi_ctx, escrow.amount)?;
         escrow.is_completed = true;
+        emit!(ReleasedEvent { escrow: escrow.key(), amount: escrow.amount });
         Ok(())
     }
 
@@ -87,6 +88,7 @@ pub mod escrow {
             token::transfer(cpi_ctx, vault_balance)?;
         }
         escrow.is_completed = true;
+        emit!(CancelledEvent { escrow: escrow.key(), refunded_amount: vault_balance });
         Ok(())
     }
 }
@@ -169,6 +171,25 @@ pub struct EscrowAccount {
 }
 impl EscrowAccount {
     pub const SIZE: usize = 32 + 32 + 32 + 8 + 1 + 1; // поля + bump + padding(нет) => 106, округлим до 108? Anchor не требует выравнивания, оставим 106
+}
+
+// ------------------ Events ------------------
+#[event]
+pub struct DepositedEvent {
+    pub escrow: Pubkey,
+    pub amount: u64,
+}
+
+#[event]
+pub struct ReleasedEvent {
+    pub escrow: Pubkey,
+    pub amount: u64,
+}
+
+#[event]
+pub struct CancelledEvent {
+    pub escrow: Pubkey,
+    pub refunded_amount: u64,
 }
 
 // ------------------ Errors ------------------
