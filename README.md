@@ -221,3 +221,81 @@ anchor build
 Готово к проверке: код собран, тестовые сценарии описаны и воспроизводимы, README покрывает что/зачем/как.
 
 ---
+## Environment / Versions (для проверяющего)
+
+Рекомендованные версии локально (проект писался под них):
+
+| Component | Version (tested) | Допустимо |
+|-----------|------------------|-----------|
+| Solana CLI | 1.18.26 | 1.18.x |
+| Anchor CLI | 0.31.1 | 0.31.x |
+| Node.js | 18 LTS / 20 LTS | >=18 |
+| Yarn | 1.x (classic) | npm тоже ок |
+| Rust | stable + target `sbf-solana-solana` | последняя stable |
+
+Убедиться:
+```bash
+solana --version
+anchor --version
+node -v
+rustup target list | grep sbf | grep installed || rustup target add sbf-solana-solana
+```
+
+## Quick Start (коротко)
+```bash
+git clone https://github.com/iaqool/testsolana
+cd testsolana/mytoken
+yarn install          # или npm i
+anchor build          # сгенерирует IDL для mytoken и escrow
+solana-test-validator --reset &
+sleep 4
+solana config set --url localhost
+solana-keygen new --no-bip39-passphrase -s -o ~/.config/solana/id.json 2>/dev/null || true
+ANCHOR_PROVIDER_URL=http://127.0.0.1:8899 \
+ANCHOR_WALLET=~/.config/solana/id.json \
+yarn test            # прогон всех тестов (часть escrow может скипаться если IDL не попал)
+```
+
+Только токен-программа:
+```bash
+yarn test --grep "mytoken program"
+```
+Escrow после сборки:
+```bash
+anchor build  # чтобы сгенерировался IDL escrow
+yarn test --grep escrow
+```
+
+## Troubleshooting
+
+| Симптом | Причина | Решение |
+|---------|---------|---------|
+| `Unable to get latest blockhash` | валидатор не успел подняться | добавить `sleep 4-6`, повторить тест |
+| `Failed to find IDL of program \`escrow\`` | не выполнен `anchor build` (нет IDL) | выполнить `anchor build`, повторить тест |
+| `fetch failed` при `createMint` | ранний RPC запрос до готовности валидатора | дождаться health: `solana block-height` без ошибки, затем тесты |
+| Порт 8899 занят | ранее запущенный валидатор | `pkill -f solana-test-validator` или использовать `--url localhost:8899` снова |
+| `no such command: build-sbf` / сборка Anchor падает | отсутствует необходимый cargo plugin / toolchain | обновить Anchor: `cargo install --git https://github.com/coral-xyz/anchor anchor-cli --locked`; `rustup target add sbf-solana-solana` |
+| Escrow тесты скипаются | IDL не найден | это ок если не делали `anchor build`; для проверки escrow просто сделайте build |
+| Discriminator burn_tokens = 0...0 | ручная заглушка в репо | `anchor build` регенерирует корректный IDL |
+
+Проверка readiness валидатора вручную:
+```bash
+curl -s -H 'Content-Type: application/json' \
+	-d '{"jsonrpc":"2.0","id":1,"method":"getHealth"}' http://127.0.0.1:8899
+```
+Ожидаемый ответ: `{"result":"ok", ...}`.
+
+## Minimal Smoke Script (одна команда)
+```bash
+solana-test-validator --reset & sleep 5; \
+cd mytoken; anchor build; \
+ANCHOR_PROVIDER_URL=http://127.0.0.1:8899 ANCHOR_WALLET=~/.config/solana/id.json yarn test --grep "mint_tokens"
+```
+
+## Notes for Reviewer (коротко)
+- Mint создаём в тестах через JS для упрощения (описано выше).
+- Escrow seeds без nonce — это осознанное упрощение (см. TODO).
+- Burn IDL discriminator в репозитории заглушка; нормализуется локальной сборкой.
+- Тесты аккуратно логируют транзакции и балансы — видно жизненный цикл.
+
+---
