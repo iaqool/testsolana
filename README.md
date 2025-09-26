@@ -101,3 +101,77 @@ solana logs | grep burn_tokens | tail -n 5   # опционально посмо
 
 ---
 Если понадобится вернуть полное создание mint внутри программы — можно оформить как отдельную задачу и дописать позднее.
+
+---
+
+## NEW: Программа Escrow (условные сделки с токенами)
+
+Добавлена в рамках следующего задания отдельная программа `escrow` (папка `mytoken/programs/escrow/`). Она позволяет временно держать токены отправителя до подтверждения получателем.
+
+### Зачем
+- Показать работу с PDA и владением ATA от имени PDA.
+- Отделить бизнес-логику сделки от базовых операций токена.
+- Продемонстрировать события (events) и негативные сценарии.
+
+### Основные инструкции
+| Инструкция | Назначение | Важные проверки |
+|------------|-----------|-----------------|
+| create_escrow(amount) | Создаёт запись Escrow (PDA) | amount > 0; сохраняет sender/receiver/mint |
+| deposit_tokens() | Переносит amount токенов от sender в vault (ATA PDA) | Только sender; не было депозита ранее |
+| release_tokens() | Отдаёт токены получателю | Только receiver; vault == amount; помечает завершение |
+| cancel_escrow() | Возврат токенов отправителю (если они депонированы) | Только sender; не завершено |
+
+### Структура аккаунта
+```rust
+pub struct EscrowAccount {
+	pub sender: Pubkey,
+	pub receiver: Pubkey,
+	pub mint: Pubkey,
+	pub amount: u64,
+	pub is_completed: bool,
+	pub bump: u8,
+}
+```
+
+PDA seeds: `b"escrow", sender, receiver, mint`.
+
+Vault — это ATA с owner = PDA (allowOwnerOffCurve=true). 
+
+### События
+| Event | Когда | Поля |
+|-------|-------|------|
+| DepositedEvent | После успешного deposit | escrow, amount |
+| ReleasedEvent | После release | escrow, amount |
+| CancelledEvent | После cancel | escrow, refunded_amount |
+
+### Негативные кейсы (в тестах)
+- Повторный deposit → ошибка (AlreadyDeposited).
+- Попытка cancel после release → ошибка (AlreadyCompleted).
+
+### Ограничения / упрощения
+| Пункт | Комментарий |
+|-------|-------------|
+| Уникальность сделок | Используется фиксированный набор сидов (sender/receiver/mint). Для нескольких сделок с теми же участниками понадобился бы nonce/индекс. |
+| Закрытие аккаунта | Сейчас escrow остаётся в сети (is_completed = true). Можно добавить close для возврата лампортов. |
+| Таймер/TTL | Не реализован (можно добавить через Clock sysvar и поле deadline). |
+| Частичный release | Не реализован: логика сейчас атомарная. |
+
+### Как протестировать только escrow
+```bash
+cd mytoken
+yarn test --grep escrow
+```
+
+При необходимости перед запуском пересобрать (если исправите Rust):
+```bash
+anchor build --skip-lint
+```
+
+### Что ещё можно улучшить
+- Добавить поддержку нескольких параллельных escrow через дополнительный seed (например счетчик или произвольный escrow_id).
+- Реализовать частичные выплаты (добавить поле remaining и отдельную инструкцию partial_release).
+- Авто‑закрытие `EscrowAccount` (атрибут `close = sender`).
+- Проверка минимального времени блокировки (deadline + Clock).
+- Вывод событий в отдельные тесты и парсинг логов для assert.
+
+---
