@@ -1,5 +1,5 @@
 
-Небольшой Anchor‑проект (папка `mytoken/`), где нужно было показать работу трёх инструкций программы токена:
+Небольшой Anchor‑проект (папка `mytoken/`), где нужно было показать работу четырех инструкций программы токена:
 
 - `create_token_account()` — создать associated token account (ATA)
 - `mint_tokens()` — наминтить токены в ATA
@@ -173,5 +173,25 @@ anchor build --skip-lint
 - Авто‑закрытие `EscrowAccount` (атрибут `close = sender`).
 - Проверка минимального времени блокировки (deadline + Clock).
 - Вывод событий в отдельные тесты и парсинг логов для assert.
+
+### Реальный Program ID для escrow
+Для программы `escrow` сгенерирован ключ: `deploy/escrow-keypair.json`.
+
+Текущий `program id` (добавлен в `Anchor.toml` и `declare_id!`):
+```
+Ang8b1P4PvdAywb7BY4y6Nt7paqTfURX4U1v58UAWh89
+```
+Если нужно пересоздать:
+```bash
+solana-keygen new --no-bip39-passphrase -s -o mytoken/deploy/escrow-keypair.json
+solana-keygen pubkey mytoken/deploy/escrow-keypair.json   # вставить в declare_id!
+```
+Затем обновить в `mytoken/Anchor.toml` и пересобрать:
+```bash
+cd mytoken
+anchor build
+```
+
+Важно: смена program id требует перезагрузить валидатор и заново задеплоить бинарь.
 
 ---

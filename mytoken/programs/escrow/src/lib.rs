@@ -2,9 +2,8 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::{self, AssociatedToken};
 use anchor_spl::token::{self, Token, TokenAccount, Mint, Transfer};
 
-// NOTE: временный ID, нужно будет заменить на сгенерированный публичный ключ программы
-// для учебных тестов можно оставить заглушку, но лучше потом обновить.
-declare_id!("Escrow1111111111111111111111111111111111111");
+// Реальный program id сгенерирован в deploy/escrow-keypair.json
+declare_id!("Ang8b1P4PvdAywb7BY4y6Nt7paqTfURX4U1v58UAWh89");
 
 #[program]
 pub mod escrow {
