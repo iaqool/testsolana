@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::{self, AssociatedToken};
-use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount, Transfer};
+use anchor_spl::token::{self, Mint, MintTo, Token, Transfer};
+use anchor_lang::solana_program::{program::invoke, system_instruction};
 
 declare_id!("EYfHSdmUTkcXEt2rsUUdW16C9taGPR8sXjMsQqV4F5pZ");
 
@@ -14,8 +15,41 @@ pub mod mytoken {
     }
 
     // Создание нового токена (mint) с decimals=0 и authority = authority
-    pub fn create_token(_ctx: Context<CreateToken>) -> Result<()> {
-        // Всё делает Anchor через #[account(init, ...)] на аккаунте mint
+    pub fn create_token(ctx: Context<CreateToken>) -> Result<()> {
+        let authority = &ctx.accounts.authority;
+        let mint = &ctx.accounts.mint;
+        let system_program = &ctx.accounts.system_program;
+        let token_program = &ctx.accounts.token_program;
+
+        // Создаём аккаунт под Mint вручную
+        let lamports = Rent::get()?.minimum_balance(Mint::LEN);
+        let create_ix = system_instruction::create_account(
+            authority.key,
+            mint.key,
+            lamports,
+            Mint::LEN as u64,
+            &token_program.key(),
+        );
+        invoke(
+            &create_ix,
+            &[
+                authority.to_account_info(),
+                mint.to_account_info(),
+                system_program.to_account_info(),
+            ],
+        )?;
+
+        // Инициализируем mint (decimals=0, authority = authority)
+        let cpi_accounts = token::InitializeMint2 {
+            mint: mint.to_account_info(),
+        };
+        token::initialize_mint2(
+            CpiContext::new(token_program.to_account_info(), cpi_accounts),
+            0,
+            authority.key,
+            Some(&authority.key()),
+        )?;
+
         Ok(())
     }
 
@@ -63,15 +97,11 @@ pub struct Initialize {}
 // Accounts для create_token: создаём новый Mint с authority и decimals=0
 #[derive(Accounts)]
 pub struct CreateToken<'info> {
-    #[account(
-        init,
-        payer = authority,
-        mint::decimals = 0,
-        mint::authority = authority
-    )]
-    pub mint: Account<'info, Mint>,
     #[account(mut)]
     pub authority: Signer<'info>,
+    /// CHECK: создаём вручную как Mint
+    #[account(mut, signer)]
+    pub mint: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
@@ -81,8 +111,9 @@ pub struct CreateToken<'info> {
 pub struct CreateTokenAccount<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
-    pub mint: Account<'info, Mint>,
-    /// CHECK: создаётся программой associated token, адрес передаёт клиент
+    /// CHECK: mint проверяется внутри SPL CPI
+    pub mint: UncheckedAccount<'info>,
+    /// CHECK: создаётся программой associated token
     #[account(mut)]
     pub token_account: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token>,
@@ -94,9 +125,11 @@ pub struct CreateTokenAccount<'info> {
 #[derive(Accounts)]
 pub struct MintTokens<'info> {
     #[account(mut)]
-    pub mint: Account<'info, Mint>,
+    /// CHECK: mint
+    pub mint: UncheckedAccount<'info>,
     #[account(mut)]
-    pub token_account: Account<'info, TokenAccount>,
+    /// CHECK: token account
+    pub token_account: UncheckedAccount<'info>,
     pub authority: Signer<'info>,
     pub token_program: Program<'info, Token>,
 }
@@ -105,9 +138,11 @@ pub struct MintTokens<'info> {
 #[derive(Accounts)]
 pub struct TransferTokens<'info> {
     #[account(mut)]
-    pub from: Account<'info, TokenAccount>,
+    /// CHECK: from token account
+    pub from: UncheckedAccount<'info>,
     #[account(mut)]
-    pub to: Account<'info, TokenAccount>,
+    /// CHECK: to token account
+    pub to: UncheckedAccount<'info>,
     pub authority: Signer<'info>,
     pub token_program: Program<'info, Token>,
 }

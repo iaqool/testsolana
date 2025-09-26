@@ -15,7 +15,13 @@ if (!hasAnchorToml) {
   });
 } else {
   describe("mytoken", () => {
-    // Подключаемся к локальному кластеру через переменные окружения
+    // Подключаемся: если нет ANCHOR_PROVIDER_URL, используем localhost
+    if (!process.env.ANCHOR_PROVIDER_URL) {
+      process.env.ANCHOR_PROVIDER_URL = 'http://127.0.0.1:8899';
+    }
+    if (!process.env.ANCHOR_WALLET) {
+      process.env.ANCHOR_WALLET = path.resolve(process.env.HOME || '~', '.config/solana/id.json');
+    }
     anchor.setProvider(anchor.AnchorProvider.env());
 
     // В реальном проекте тут обычно используют типы из IDL,
