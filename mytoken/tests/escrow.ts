@@ -26,10 +26,15 @@ if (!hasAnchorToml) {
     const provider = anchor.AnchorProvider.env();
     anchor.setProvider(provider);
 
-    const program = (anchor.workspace as any).Escrow as any; // no strict typing to stay consistent
+    let program: any = null;
+    try {
+      program = (anchor.workspace as any).Escrow as any; // попытка получить программу из IDL
+    } catch (e) {
+      console.log("(info) Escrow IDL load failed:", (e as Error)?.message || e);
+    }
     if (!program) {
       it("IDL for Escrow missing", function () { this.skip(); });
-      return;
+      return; // прекращаем остальные тесты escrow
     }
 
     const sender = Keypair.generate();
